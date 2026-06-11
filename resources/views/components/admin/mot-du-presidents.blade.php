@@ -15,7 +15,7 @@ new class extends Component
     public $titre = '';
     public $image;
     public $content,$nom,$poste;
-    public $president;
+    public $president,$photo_show;
 
     public function mount($page,$president)
     {
@@ -25,6 +25,7 @@ new class extends Component
         $this->content = $this->president != null ? $this->president->description : "";
         $this->nom = $this->president != null ? $this->president->nom : "";
         $this->poste = $this->president != null ? $this->president->poste : "";
+        $this->photo_show = $this->president != null ? $this->president->image : "";
     }
 
 
@@ -39,7 +40,7 @@ new class extends Component
 
 
         $image = $this->image;
-        if($image )
+        if($image)
         {
             $image_name = time() . '-president-' . Auth::guard('admin')->user()->id . '.' . $image->getClientOriginalExtension();
             // Version 4 - Utilisez decode() au lieu de make()
@@ -49,7 +50,7 @@ new class extends Component
             // Sauvegarde de l'image
             $image_resize->save('storage/images/' . $image_name);
         }
-        if(!empty($this->president))
+        if($this->president)
         {
             $this->president->update([
                 'admin_id'      => Auth::guard('admin')->user()->id,
@@ -67,13 +68,7 @@ new class extends Component
             $presi->nom = $this->nom;
             $presi->poste = $this->poste;
             $presi->description = $this->content;
-            if ($image != null) {
-                "storage/images/{$image_name}";
-            }
-            elseif(!empty($this->president->image))
-            {
-                $this->president->image;
-            }
+            $presi->image = $image != null ? "storage/images/{$image_name}" : $this->president->image;
             $presi->save();
         }
 
@@ -85,73 +80,79 @@ new class extends Component
 ?>
 
 <div>
-    <div class="card">
-        <div class="card-body">
-            <form wire:submit.prevent="save">
+    <div class="row">
+        <div class="col-md-10 col-lg-10">
+            <div class="card">
+                <div class="card-body">
+                    <form wire:submit.prevent="save">
 
-                {{-- Photo --}}
-                <div class="row">
-                    <div class="col-md-12">
-                        <label for="image">Choisir une image</label>
-                        <input type="file" wire:model='image' class="form-control" accept=".jpg,.png,.jpeg,.webp">
-                        @if ($image)
-                            <div class="form-group">
-                                <img src="{{ $image->temporaryUrl() }}" style="width: 150px !important;height:200px !important;">
+                        {{-- Photo --}}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <label for="image">Choisir une image</label>
+                                <input type="file" wire:model='image' class="form-control" accept=".jpg,.png,.jpeg,.webp">
+                                @if ($image)
+                                    <div class="form-group">
+                                        <img src="{{ $image->temporaryUrl() }}" style="width: 150px !important;height:200px !important;">
+                                    </div>
+                                @endif
+
+                                @error('image')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
                             </div>
-                        @else
-                            @if(!empty($this->president->image))
-                                <div class="form-group">
-                                    <img src="{{ asset($this->president->image) }}" style="width: 150px !important;height:200px !important;">
-                                </div>
-                            @endif
-                        @endif
-                        @error('image')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
+                        </div>
+
+                        <div class="mb-3"></div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Nom complet</label>
+                                <input type="text" wire:model='nom' class="form-control">
+                                @error('nom')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label>Poste</label>
+                                <input type="text" wire:model='poste' class="form-control">
+                                @error('poste')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="mb-3"></div>
+                        {{-- QUILLJS ÉDITEUR --}}
+                        <div class="mb-3" wire:ignore>
+                            <label>Description </label>
+
+                            <!-- Éditeur Quill -->
+                            <div id="quill-editor" style="height: 400px;">{!! $content !!}</div>
+
+                            <!-- Champ caché contenant le HTML -->
+                            <input type="hidden" id="quill-content">
+
+                            @error('content')
+                                <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <button type="submit" class="btn btn-primary mt-3">
+                            Enregistrer
+                        </button>
+                    </form>
+
+                    @if (session()->has('message'))
+                        <div class="alert alert-success mt-3">
+                            {{ session('message') }}
+                        </div>
+                    @endif
                 </div>
-
-                 <div class="mb-3"></div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <label>Nom complet</label>
-                        <input type="text" wire:model='nom' class="form-control">
-                        @error('nom')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="col-md-6">
-                        <label>Poste</label>
-                        <input type="text" wire:model='poste' class="form-control">
-                        @error('poste')
-                            <span class="text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                </div>
-                <div class="mb-3"></div>
-                {{-- QUILLJS ÉDITEUR --}}
-                <div class="mb-3" wire:ignore>
-                    <label>Description </label>
-
-                    <!-- Éditeur Quill -->
-                    <div id="quill-editor" style="height: 400px;">{!! $content !!}</div>
-
-                    <!-- Champ caché contenant le HTML -->
-                    <input type="hidden" id="quill-content">
-
-                    @error('content')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <button type="submit" class="btn btn-primary mt-3">
-                    Enregistrer
-                </button>
-            </form>
-
-            @if (session()->has('message'))
-                <div class="alert alert-success mt-3">
-                    {{ session('message') }}
+            </div>
+        </div>
+        <div class="col-md-2 col-lg-2">
+            @if(isset($this->photo_show))
+                <div class="form-group">
+                    <img src="{{ asset($this->photo_show) }}" style="width: 150px !important;height:200px !important;">
                 </div>
             @endif
         </div>
