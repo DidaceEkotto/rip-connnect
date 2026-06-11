@@ -22,6 +22,23 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 
+Route::get('/create-symlink', function () {
+    if (is_link(public_path('storage'))) {
+        return 'Le lien symbolique existe déjà !';
+    }
+
+    try {
+        symlink(
+            storage_path('app/public'),
+            public_path('storage')
+        );
+        return 'Lien symbolique créé avec succès !';
+    } catch (\Exception $e) {
+        return 'Erreur : ' . $e->getMessage();
+    }
+}); // Par exemple, middleware pour admin
+
+
 Route::get('/',[HomePageController::class, 'index'])->name('homePage');
 
 Auth::routes();
